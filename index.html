@@ -52,6 +52,8 @@ h1{font-size:20px;margin:0 0 16px;text-align:center;letter-spacing:-.01em}
 @keyframes float{50%{transform:translateY(-8px)}}
 .big{font-size:36px;font-weight:700;margin:4px 0}
 .msg{color:var(--muted);margin:0 0 8px}
+.best{margin:0 0 8px;font-weight:600;font-variant-numeric:tabular-nums}
+.newbest{display:inline-block;margin:0 0 8px;padding:4px 14px;border-radius:999px;background:var(--good-bg);color:var(--text);font-weight:700;animation:fade .4s ease}
 .hidden{display:none}
 .start{display:grid;gap:12px}
 .label{font-weight:600}
@@ -85,6 +87,7 @@ h1{font-size:20px;margin:0 0 16px;text-align:center;letter-spacing:-.01em}
     <p class="msg" id="who"></p>
     <div class="big" id="final"></div>
     <p class="msg" id="msg"></p>
+    <div role="status" aria-live="polite"><p class="best" id="best"></p><div class="newbest hidden" id="newbest">🎉 New best!</div></div>
     <button class="next show" id="again">Play again</button>
   </div>
 </main>
@@ -125,14 +128,24 @@ function pick(k){
   $("next").classList.add("show");$("next").focus();
 }
 $("next").onclick=()=>{if(++i<Q.length){render();$("opts").firstChild.focus()}else finish()};
+const bestKey=()=>"quizBest:"+player.toLowerCase();
+function recordBest(){
+  let prev=null;
+  try{const v=parseInt(localStorage.getItem(bestKey()),10);if(v>=0&&v<=Q.length)prev=v}catch{}
+  const isNew=prev!==null&&score>prev;
+  const best=prev===null?score:Math.max(prev,score);
+  if(prev===null||isNew)try{localStorage.setItem(bestKey(),String(best))}catch{}
+  $("best").textContent=`Best: ${best} / ${Q.length}`;
+  $("newbest").classList.toggle("hidden",!isNew);
+}
 function finish(){
   $("quiz").classList.add("hidden");$("results").classList.remove("hidden");
   const p=score/Q.length;
   const [e,m]=p===1?["🏆","Flawless! Mission commander material."]:p>=.8?["🚀","Stellar work, astronaut!"]:p>=.6?["🌟","Solid orbit — nicely done."]:p>=.4?["🛰️","Getting off the launchpad. Try again!"]:["🌍","Houston, we have a problem. Back to training!"];
-  $("emoji").textContent=e;$("final").textContent=`${score} / ${Q.length}`;$("who").textContent=`Well flown, ${player}!`;$("msg").textContent=m;$("again").focus();
+  $("emoji").textContent=e;$("final").textContent=`${score} / ${Q.length}`;$("who").textContent=`Well flown, ${player}!`;$("msg").textContent=m;recordBest();$("again").focus();
 }
 $("again").onclick=()=>{i=0;score=0;$("score").textContent=0;$("results").classList.add("hidden");$("quiz").classList.remove("hidden");render();$("opts").firstChild.focus()};
-$("name").value=localStorage.getItem("quizName")||"";
+try{$("name").value=localStorage.getItem("quizName")||""}catch{}
 $("start").onsubmit=e=>{e.preventDefault();player=$("name").value.trim();if(!player)return;
   try{localStorage.setItem("quizName",player)}catch{}
   $("player").textContent=player;$("start").classList.add("hidden");$("quiz").classList.remove("hidden");render();$("opts").firstChild.focus()};
